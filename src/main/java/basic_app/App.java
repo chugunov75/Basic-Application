@@ -17,110 +17,50 @@ public class App
 {
   private static final Logger log = LogManager.getLogger(App.class);
 
+  private static final String[] filePropNames = {"users_file", "cities_file", "countries_file"};
+
   public static void main(String[] args)
   {
     DbUtil.cleanTables();
 
-    String str = "";
-    File fUsers = null;
-    File fCities = null;
-    File fCountries = null;
+    List<File> files = new ArrayList<>();
 
-    Scanner in = new Scanner(System.in);
+    Map<String, String> fileProps = null;
 
-    exit:
-    while (!str.equals("q"))
+    try
     {
-      do
+      fileProps = DbUtil.getProps(filePropNames, "file.properties", App.class);
+      if (fileProps == null)
       {
-        System.out.println("Укажите путь к файлу данных о пользователях (пример - files/users.csv; выход - нажмите q)");
-        str = in.nextLine();
-        if (str.equals("q"))
-        {
-          System.out.println("By!");
-          break exit;
-        }
-        else if (!str.isEmpty())
-        {
-          fUsers = new File(str);
-        }
-
-        if (fUsers == null || !fUsers.exists())
-        {
-          System.out.println("Путь указан неверно");
-        }
-        else
-        {
-          break;
-        }
-      }
-      while (true);
-
-      do
-      {
-        System.out.println("Укажите путь к файлу данных о городах (пример - files/cities.csv; выход - нажмите q)");
-        str = in.nextLine();
-        if (str.equals("q"))
-        {
-          System.out.println("By!");
-          break exit;
-        }
-        else if (!str.isEmpty())
-        {
-          fCities = new File(str);
-        }
-
-        if (fCities == null || !fCities.exists())
-        {
-          System.out.println("Путь указан неверно");
-        }
-        else
-        {
-          break;
-        }
-      }
-      while (true);
-
-      do
-      {
-        System.out.println("Укажите путь к файлу данных о странах (пример - files/countries.csv; выход - нажмите q)");
-        str = in.nextLine();
-        if (str.equals("q"))
-        {
-          System.out.println("By!");
-          break exit;
-        }
-        else if (!str.isEmpty())
-        {
-          fCountries = new File(str);
-        }
-
-        if (fCountries == null || !fCountries.exists())
-        {
-          System.out.println("Путь указан неверно");
-        }
-        else
-        {
-          break;
-        }
-      }
-      while (true);
-
-      str = "q";
-
-      boolean result = writeFlatUsers(fUsers, fCities, fCountries);
-
-      if (result)
-      {
-        System.out.println("Зделано!");
-      }
-      else
-      {
-        System.out.println("Что-то пошло не так...");
+        throw new IllegalAccessException();
       }
 
+      for (String key : filePropNames)
+      {
+        File file = new File(fileProps.get(key));
+        if (file == null || !file.exists())
+        {
+          throw new FileNotFoundException();
+        }
+
+        files.add(file);
+      }
     }
-    in.close();
+    catch (Exception ex)
+    {
+      log.error("Error message : {}", ex.getMessage());
+    }
+
+    boolean result = writeFlatUsers(files.get(0), files.get(1), files.get(2));
+
+    if (result)
+    {
+      System.out.println("Done!");
+    }
+    else
+    {
+      System.out.println("Failure...");
+    }
   }
 
 

@@ -1,15 +1,15 @@
 package basic_app.util;
 
+import basic_app.App;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,11 +21,10 @@ public class DbUtil
 
   private static HikariDataSource dataSource;
 
-  private static String driverName;
-  private static String url;
-  private static String username;
-  private static String password;
-  private static int maxPoolSize;
+  private static Map<String, String> dbProps;
+
+  private static final String[] dbPropNames =
+      {"driver", "url", "username", "password", "max_pool_size", "max_life_time", "idle_timeout"};
 
   private static void init()
   {
@@ -33,39 +32,52 @@ public class DbUtil
 
     HikariConfig config = new HikariConfig();
     config.setPoolName("MySqlPool");
-    config.setDriverClassName(driverName);
-    config.setJdbcUrl(url);
-    config.setUsername(username);
-    config.setPassword(password);
+    config.setDriverClassName(dbProps.get("driver"));
+    config.setJdbcUrl(dbProps.get("url"));
+    config.setUsername(dbProps.get("username"));
+    config.setPassword(dbProps.get("password"));
     config.setConnectionTestQuery("SELECT 1");
-    config.setMaxLifetime(60000); // 60 Sec
-    config.setIdleTimeout(45000); // 45 Sec
-    config.setMaximumPoolSize(maxPoolSize); // 50 Connections (including idle connections)
+    config.setMaxLifetime(Integer.parseInt(dbProps.get("max_life_time")));
+    config.setIdleTimeout(Integer.parseInt(dbProps.get("idle_timeout")));
+    config.setMaximumPoolSize(Integer.parseInt(dbProps.get("max_pool_size")));
     dataSource = new HikariDataSource(config);
 
     if (dataSource != null)
     {
-      log.info("The Hikari Data Source has been created successfully!", url);
+      log.info("The Hikari Data Source has been created successfully!");
     }
 
   }
 
-  private static void setDbProperties()
+  public static Map<String, String> getProps(String[] keys, String propertiesFileName, Class currentClass) throws IOException
   {
+    Map<String, String> propsMap = new HashMap<>();
     Properties props = new Properties();
-    String propsFilePath = DbUtil.class
+    String propsFilePath = currentClass
         .getClassLoader()
-        .getResource("database.properties")
+        .getResource(propertiesFileName)
         .getFile();
 
     try (InputStream in = Files.newInputStream(Paths.get(propsFilePath)))
     {
       props.load(in);
-      driverName = props.getProperty("driver");
-      url = props.getProperty("url");
-      username = props.getProperty("username");
-      password = props.getProperty("password");
-      maxPoolSize = Integer.parseInt(props.getProperty("max_pool_size"));
+      for (String key : keys)
+      {
+        propsMap.put(key, props.getProperty(key));
+      }
+    }
+    catch (Exception ex)
+    {
+      throw ex;
+    }
+    return propsMap;
+  }
+
+  private static void setDbProperties()
+  {
+    try
+    {
+      dbProps = getProps(dbPropNames, "database.properties", DbUtil.class);
     }
     catch (Exception ex)
     {
